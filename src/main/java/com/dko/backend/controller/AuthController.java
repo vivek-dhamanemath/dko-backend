@@ -2,7 +2,9 @@ package com.dko.backend.controller;
 
 import com.dko.backend.dto.*;
 import com.dko.backend.model.User;
+import com.dko.backend.repository.UserRepository;
 import com.dko.backend.security.JwtUtil;
+import com.dko.backend.security.SecurityUtils;
 import com.dko.backend.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -25,7 +28,36 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         User user = authService.authenticate(request);
-        String token = jwtUtil.generateToken(user.getId().toString());
-        return ResponseEntity.ok(new AuthResponse(token));
+
+        String accessToken = jwtUtil.generateAccessToken(
+                user.getId().toString(),
+                user.getRole().name());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId().toString());
+
+        authService.saveRefreshToken(user, refreshToken);
+
+        return ResponseEntity.ok(new AuthResponse(
+                accessToken,
+                "Bearer",
+                jwtUtil.getAccessTokenExpiryInSeconds(),
+                refreshToken));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshRequest request) {
+        return ResponseEntity.ok(authService.refreshAccessToken(request.getRefreshToken()));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody LogoutRequest request) {
+        authService.logout(request.getRefreshToken());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/logout-all")
+    public ResponseEntity<Void> logoutAll() {
+        User user = SecurityUtils.getCurrentUser(userRepository);
+        authService.logoutAll(user.getId());
+        return ResponseEntity.noContent().build();
     }
 }
