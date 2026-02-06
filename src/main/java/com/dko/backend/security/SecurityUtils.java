@@ -16,12 +16,12 @@ public class SecurityUtils {
     }
 
     public static User getCurrentUser(UserRepository userRepository) {
-        String email = (String) SecurityContextHolder
+        String userId = (String) SecurityContextHolder
                 .getContext()
                 .getAuthentication()
                 .getPrincipal();
 
-        return userRepository.findByEmail(email)
+        return userRepository.findById(UUID.fromString(userId))
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }
