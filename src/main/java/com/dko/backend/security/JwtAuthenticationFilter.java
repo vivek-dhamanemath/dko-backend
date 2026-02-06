@@ -36,18 +36,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String userId = jwtUtil.extractUserId(token);
                 String role = jwtUtil.extractRole(token);
 
-                if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (userId != null && role != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             userId,
                             null,
-                            Collections.singletonList(new SimpleGrantedAuthority(role)));
+                            Collections.singletonList(new SimpleGrantedAuthority(role))); // uses simple role (e.g.
+                                                                                          // USER)
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
-                    System.out.println("✅ Authenticated user ID: " + userId + " with role: " + role);
+                    System.out.println("✅ JWT Auth successful for user: " + userId + " [" + role + "]");
                 }
             } catch (Exception e) {
-                System.out.println("❌ JWT Authentication failed: " + e.getMessage());
+                System.out.println("❌ JWT Auth failed: " + e.getMessage());
             }
+        } else {
+            System.out.println("ℹ️ No JWT token found in request: " + request.getRequestURI());
         }
 
         filterChain.doFilter(request, response);

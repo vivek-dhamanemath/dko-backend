@@ -59,7 +59,9 @@ public class AuthService {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setToken(token);
         refreshToken.setUser(user);
-        refreshToken.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
+        Instant expiry = Instant.now().plus(7, ChronoUnit.DAYS);
+        refreshToken.setExpiresAt(expiry);
+        refreshToken.setExpiryDate(expiry);
         refreshToken.setRevoked(false);
         refreshToken.setCreatedAt(Instant.now());
 
@@ -101,7 +103,9 @@ public class AuthService {
         RefreshToken newStoredToken = new RefreshToken();
         newStoredToken.setToken(newRefreshToken);
         newStoredToken.setUser(user);
-        newStoredToken.setExpiresAt(Instant.now().plus(7, ChronoUnit.DAYS));
+        Instant expiry = Instant.now().plus(7, ChronoUnit.DAYS);
+        newStoredToken.setExpiresAt(expiry);
+        newStoredToken.setExpiryDate(expiry);
         newStoredToken.setRevoked(false);
         newStoredToken.setCreatedAt(Instant.now());
 
