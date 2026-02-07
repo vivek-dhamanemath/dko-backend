@@ -10,7 +10,7 @@ import java.util.UUID;
 
 public interface ResourceRepository extends JpaRepository<Resource, UUID> {
 
-    List<Resource> findByOwner(User owner);
+    List<Resource> findByUserOrderByCreatedAtDesc(User user);
 
-    Optional<Resource> findByIdAndOwner(UUID id, User owner);
+    Optional<Resource> findByIdAndUser(UUID id, User user);
 }
