@@ -15,6 +15,7 @@ import com.dko.backend.dto.CreateResourceRequest;
 import com.dko.backend.dto.ResourceResponse;
 import com.dko.backend.model.Resource;
 import com.dko.backend.model.User;
+import com.dko.backend.repository.ResourceTagRepository;
 import com.dko.backend.repository.UserRepository;
 import com.dko.backend.security.SecurityUtils;
 import com.dko.backend.service.ResourceService;
@@ -28,6 +29,7 @@ public class ResourceController {
 
     private final ResourceService resourceService;
     private final UserRepository userRepository;
+    private final ResourceTagRepository resourceTagRepository;
 
     @PostMapping
     public ResourceResponse create(
@@ -55,11 +57,18 @@ public class ResourceController {
     }
 
     private ResourceResponse map(Resource r) {
+        List<String> tags = resourceTagRepository.findByResource(r)
+                .stream()
+                .map(rt -> rt.getTag().getName())
+                .toList();
+
         return new ResourceResponse(
                 r.getId(),
-                r.getTitle(),
                 r.getUrl(),
-                r.getDescription(),
+                r.getTitle(),
+                r.getNote(),
+                r.getCategory(),
+                tags,
                 r.getCreatedAt());
     }
 }
