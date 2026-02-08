@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dko.backend.dto.CreateResourceRequest;
+import com.dko.backend.dto.FilterCriteria;
 import com.dko.backend.dto.ResourceResponse;
 import com.dko.backend.model.Resource;
 import com.dko.backend.model.User;
@@ -45,6 +46,17 @@ public class ResourceController {
         User user = SecurityUtils.getCurrentUser(userRepository);
 
         return resourceService.getUserResources(user)
+                .stream()
+                .map(this::map)
+                .toList();
+    }
+
+    @PostMapping("/filter")
+    public List<ResourceResponse> filterResources(
+            @RequestBody FilterCriteria criteria) {
+        User user = SecurityUtils.getCurrentUser(userRepository);
+
+        return resourceService.getFilteredResources(user, criteria)
                 .stream()
                 .map(this::map)
                 .toList();

@@ -3,17 +3,15 @@ package com.dko.backend.model;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(name = "resources")
+@Table(name = "saved_views")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Resource {
+public class SavedView {
 
     @Id
     @GeneratedValue
@@ -24,22 +22,13 @@ public class Resource {
     private User user;
 
     @Column(nullable = false)
-    private String url;
+    private String name;
 
-    @Column(nullable = false)
-    private String title;
-
-    @Column(columnDefinition = "TEXT")
-    private String note;
-
-    @Column(nullable = false)
-    private String category;
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String filters; // Store as JSON string
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
-
-    @OneToMany(mappedBy = "resource", fetch = FetchType.LAZY)
-    private Set<ResourceTag> resourceTags = new HashSet<>();
 
     @PrePersist
     public void onCreate() {
