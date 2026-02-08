@@ -12,14 +12,17 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private static final String SECRET = "this-is-a-very-secure-secret-key-with-at-least-32-characters";
+    private final Key key;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public JwtUtil(@org.springframework.beans.factory.annotation.Value("${jwt.secret}") String secret) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+    }
 
     private static final long ACCESS_TOKEN_EXPIRY = 15 * 60 * 1000; // 15 minutes
     private static final long REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
 
     private static final String ISSUER = "developer-knowledge-organizer";
-
-    private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
 
     public String generateAccessToken(String userId, String role) {
         return Jwts.builder()
