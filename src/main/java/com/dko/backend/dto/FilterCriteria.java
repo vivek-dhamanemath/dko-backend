@@ -13,4 +13,5 @@ public class FilterCriteria {
     private String dateRange; // "last_7_days", "last_30_days", "last_90_days", "custom"
     private LocalDate startDate;
     private LocalDate endDate;
+    private Boolean isArchived;
 }

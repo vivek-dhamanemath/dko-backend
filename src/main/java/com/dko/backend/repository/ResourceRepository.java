@@ -14,5 +14,7 @@ public interface ResourceRepository extends JpaRepository<Resource, UUID>,
 
     List<Resource> findByUserOrderByCreatedAtDesc(User user);
 
+    List<Resource> findByUserAndIsArchivedOrderByCreatedAtDesc(User user, Boolean isArchived);
+
     Optional<Resource> findByIdAndUser(UUID id, User user);
 }

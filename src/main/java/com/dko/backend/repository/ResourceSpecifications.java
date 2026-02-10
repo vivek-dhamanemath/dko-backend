@@ -56,4 +56,8 @@ public class ResourceSpecifications {
             return cb.between(root.get("createdAt"), startInstant, endInstant);
         };
     }
+
+    public static Specification<Resource> isArchived(boolean isArchived) {
+        return (root, query, cb) -> cb.equal(root.get("isArchived"), isArchived);
+    }
 }

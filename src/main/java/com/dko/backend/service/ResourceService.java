@@ -10,10 +10,12 @@ import com.dko.backend.repository.ResourceSpecifications;
 import com.dko.backend.repository.ResourceTagRepository;
 import com.dko.backend.repository.TagRepository;
 import com.dko.backend.dto.CreateResourceRequest;
+import com.dko.backend.dto.UpdateResourceRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -58,8 +60,8 @@ public class ResourceService {
         return saved;
     }
 
-    public List<Resource> getUserResources(User user) {
-        return resourceRepository.findByUserOrderByCreatedAtDesc(user);
+    public List<Resource> getUserResources(User user, boolean isArchived) {
+        return resourceRepository.findByUserAndIsArchivedOrderByCreatedAtDesc(user, isArchived);
     }
 
     public List<Resource> getFilteredResources(User user, FilterCriteria criteria) {
@@ -97,6 +99,10 @@ public class ResourceService {
             spec = spec.and(ResourceSpecifications.createdBetween(start, end));
         }
 
+        // Handle archive status (default to false if null)
+        boolean includeArchived = criteria.getIsArchived() != null ? criteria.getIsArchived() : false;
+        spec = spec.and(ResourceSpecifications.isArchived(includeArchived));
+
         // Execute query with sorting
         return resourceRepository.findAll(spec,
                 Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -107,5 +113,51 @@ public class ResourceService {
                 .orElseThrow(() -> new RuntimeException("Resource not found"));
 
         resourceRepository.delete(resource);
+    }
+
+    @Transactional
+    public Resource update(UUID id, UpdateResourceRequest request, User user) {
+        Resource resource = resourceRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+
+        resource.setUrl(request.getUrl());
+        resource.setTitle(request.getTitle());
+        resource.setNote(request.getNote());
+        resource.setCategory(request.getCategory());
+
+        Resource saved = resourceRepository.save(resource);
+
+        // Handle tags
+        if (request.getTags() != null) {
+            // Remove existing tags
+            resourceTagRepository.deleteByResource(resource);
+
+            // Add new tags
+            for (String tagName : request.getTags()) {
+                Tag tag = tagRepository.findByNameAndUser(tagName, user)
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            newTag.setUser(user);
+                            return tagRepository.save(newTag);
+                        });
+
+                ResourceTag resourceTag = new ResourceTag();
+                resourceTag.setResource(saved);
+                resourceTag.setTag(tag);
+                resourceTagRepository.save(resourceTag);
+            }
+        }
+
+        return saved;
+    }
+
+    @Transactional
+    public Resource toggleArchive(UUID id, User user) {
+        Resource resource = resourceRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+
+        resource.setIsArchived(!Boolean.TRUE.equals(resource.getIsArchived()));
+        return resourceRepository.save(resource);
     }
 }

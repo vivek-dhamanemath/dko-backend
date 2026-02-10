@@ -38,6 +38,9 @@ public class Resource {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean isArchived = false;
+
     @OneToMany(mappedBy = "resource", fetch = FetchType.LAZY)
     private Set<ResourceTag> resourceTags = new HashSet<>();
 

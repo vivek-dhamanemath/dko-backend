@@ -10,8 +10,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.dko.backend.dto.CreateResourceRequest;
+import com.dko.backend.dto.UpdateResourceRequest;
 import com.dko.backend.dto.FilterCriteria;
 import com.dko.backend.dto.ResourceResponse;
 import com.dko.backend.model.Resource;
@@ -41,11 +44,28 @@ public class ResourceController {
         return map(resource);
     }
 
+    @PutMapping("/{id}")
+    public ResourceResponse update(
+            @PathVariable UUID id,
+            @RequestBody UpdateResourceRequest request) {
+        User user = SecurityUtils.getCurrentUser(userRepository);
+        Resource resource = resourceService.update(id, request, user);
+        return map(resource);
+    }
+
+    @PutMapping("/{id}/archive")
+    public ResourceResponse toggleArchive(@PathVariable UUID id) {
+        User user = SecurityUtils.getCurrentUser(userRepository);
+        Resource resource = resourceService.toggleArchive(id, user);
+        return map(resource);
+    }
+
     @GetMapping
-    public List<ResourceResponse> myResources() {
+    public List<ResourceResponse> myResources(
+            @RequestParam(required = false, defaultValue = "false") boolean archived) {
         User user = SecurityUtils.getCurrentUser(userRepository);
 
-        return resourceService.getUserResources(user)
+        return resourceService.getUserResources(user, archived)
                 .stream()
                 .map(this::map)
                 .toList();
@@ -81,6 +101,7 @@ public class ResourceController {
                 r.getNote(),
                 r.getCategory(),
                 tags,
-                r.getCreatedAt());
+                r.getCreatedAt(),
+                r.getIsArchived() != null ? r.getIsArchived() : false);
     }
 }

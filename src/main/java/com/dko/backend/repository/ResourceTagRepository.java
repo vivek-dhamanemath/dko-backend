@@ -9,4 +9,6 @@ import java.util.List;
 
 public interface ResourceTagRepository extends JpaRepository<ResourceTag, ResourceTagId> {
     List<ResourceTag> findByResource(Resource resource);
+
+    void deleteByResource(Resource resource);
 }

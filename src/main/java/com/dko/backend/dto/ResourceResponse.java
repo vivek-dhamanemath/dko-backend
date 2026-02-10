@@ -17,4 +17,5 @@ public class ResourceResponse {
     private String category;
     private List<String> tags;
     private Instant createdAt;
+    private boolean isArchived;
 }
