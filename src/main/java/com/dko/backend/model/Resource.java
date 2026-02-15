@@ -41,8 +41,20 @@ public class Resource {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private Boolean isArchived = false;
 
-    @OneToMany(mappedBy = "resource", fetch = FetchType.LAZY)
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean isDeleted = false;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean isPinned = false;
+
+    @OneToMany(mappedBy = "resource", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ResourceTag> resourceTags = new HashSet<>();
+
+    @ManyToMany(mappedBy = "resources", fetch = FetchType.LAZY)
+    private Set<Collection> collections = new HashSet<>();
 
     @PrePersist
     public void onCreate() {

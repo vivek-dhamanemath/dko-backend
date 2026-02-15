@@ -9,6 +9,7 @@ import com.dko.backend.repository.ResourceRepository;
 import com.dko.backend.repository.ResourceSpecifications;
 import com.dko.backend.repository.ResourceTagRepository;
 import com.dko.backend.repository.TagRepository;
+import com.dko.backend.repository.UserRepository;
 import com.dko.backend.dto.CreateResourceRequest;
 import com.dko.backend.dto.UpdateResourceRequest;
 import lombok.RequiredArgsConstructor;
@@ -17,8 +18,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -28,7 +32,9 @@ public class ResourceService {
     private final ResourceRepository resourceRepository;
     private final TagRepository tagRepository;
     private final ResourceTagRepository resourceTagRepository;
+    private final UserRepository userRepository;
 
+    @Transactional
     public Resource create(CreateResourceRequest request, User user) {
         Resource resource = new Resource();
         resource.setUser(user);
@@ -56,6 +62,12 @@ public class ResourceService {
                 resourceTagRepository.save(resourceTag);
             }
         }
+
+        // Increment Persistent Lifetime Counter
+        User currentUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        currentUser.setLifetimeResourcesCount(currentUser.getLifetimeResourcesCount() + 1);
+        userRepository.save(currentUser);
 
         return saved;
     }
@@ -99,9 +111,16 @@ public class ResourceService {
             spec = spec.and(ResourceSpecifications.createdBetween(start, end));
         }
 
+        if (criteria.getCollectionId() != null) {
+            spec = spec.and(ResourceSpecifications.isInCollection(criteria.getCollectionId()));
+        }
+
         // Handle archive status (default to false if null)
         boolean includeArchived = criteria.getIsArchived() != null ? criteria.getIsArchived() : false;
         spec = spec.and(ResourceSpecifications.isArchived(includeArchived));
+
+        // Always exclude soft-deleted resources from normal queries
+        spec = spec.and(ResourceSpecifications.isNotDeleted());
 
         // Execute query with sorting
         return resourceRepository.findAll(spec,
@@ -112,7 +131,9 @@ public class ResourceService {
         Resource resource = resourceRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new RuntimeException("Resource not found"));
 
-        resourceRepository.delete(resource);
+        resource.setIsDeleted(true);
+        resource.setDeletedAt(Instant.now());
+        resourceRepository.save(resource);
     }
 
     @Transactional
@@ -159,5 +180,87 @@ public class ResourceService {
 
         resource.setIsArchived(!Boolean.TRUE.equals(resource.getIsArchived()));
         return resourceRepository.save(resource);
+    }
+
+    @Transactional
+    public Resource togglePin(UUID id, User user) {
+        Resource resource = resourceRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+
+        resource.setIsPinned(!Boolean.TRUE.equals(resource.getIsPinned()));
+        return resourceRepository.save(resource);
+    }
+
+    @Transactional
+    public void bulkDelete(List<UUID> ids, User user) {
+        for (UUID id : ids) {
+            resourceRepository.findByIdAndUser(id, user).ifPresent(resource -> {
+                resource.setIsDeleted(true);
+                resource.setDeletedAt(Instant.now());
+                resourceRepository.save(resource);
+            });
+        }
+    }
+
+    @Transactional
+    public void bulkToggleArchive(List<UUID> ids, boolean archive, User user) {
+        for (UUID id : ids) {
+            Resource resource = resourceRepository.findByIdAndUser(id, user)
+                    .orElseThrow(() -> new RuntimeException("Resource not found: " + id));
+            resource.setIsArchived(archive);
+            resourceRepository.save(resource);
+        }
+    }
+
+    // --- Trash ---
+
+    public List<Resource> getTrashResources(User user) {
+        return resourceRepository.findByUserAndIsDeletedTrueOrderByDeletedAtDesc(user);
+    }
+
+    @Transactional
+    public Resource restoreFromTrash(UUID id, User user) {
+        Resource resource = resourceRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+        resource.setIsDeleted(false);
+        resource.setDeletedAt(null);
+        return resourceRepository.save(resource);
+    }
+
+    @Transactional
+    public void permanentDelete(UUID id, User user) {
+        Resource resource = resourceRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new RuntimeException("Resource not found"));
+        resourceRepository.delete(resource);
+    }
+
+    @Transactional
+    public void emptyTrash(User user) {
+        List<Resource> trashed = resourceRepository.findByUserAndIsDeletedTrueOrderByDeletedAtDesc(user);
+        resourceRepository.deleteAll(trashed);
+    }
+
+    // --- Stats ---
+    @Transactional
+    public Map<String, Long> getStats(User user) {
+        // Force refresh user from repository to get current persistent state
+        User currentUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Migration: If persistent counter is 0 but user has resources, initialize it
+        if (currentUser.getLifetimeResourcesCount() == 0) {
+            long currentTotal = resourceRepository.countByUser(currentUser);
+            if (currentTotal > 0) {
+                currentUser.setLifetimeResourcesCount(currentTotal);
+                userRepository.save(currentUser);
+            }
+        }
+
+        Map<String, Long> stats = new HashMap<>();
+        stats.put("lifetime", currentUser.getLifetimeResourcesCount());
+        stats.put("active", resourceRepository.countByUserAndIsDeletedFalse(currentUser));
+        stats.put("archived", resourceRepository.countByUserAndIsDeletedFalseAndIsArchivedTrue(currentUser));
+        stats.put("deleted", resourceRepository.countByUserAndIsDeletedTrue(currentUser));
+        return stats;
     }
 }

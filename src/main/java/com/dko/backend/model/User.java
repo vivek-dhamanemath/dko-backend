@@ -32,4 +32,7 @@ public class User {
 
     @Column(name = "created_at")
     private Instant createdAt;
+
+    @Column(name = "lifetime_resources_count", nullable = false, columnDefinition = "bigint default 0")
+    private long lifetimeResourcesCount = 0;
 }

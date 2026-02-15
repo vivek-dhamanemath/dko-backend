@@ -14,4 +14,5 @@ public class FilterCriteria {
     private LocalDate startDate;
     private LocalDate endDate;
     private Boolean isArchived;
+    private java.util.UUID collectionId;
 }

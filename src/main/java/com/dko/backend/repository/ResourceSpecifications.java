@@ -60,4 +60,18 @@ public class ResourceSpecifications {
     public static Specification<Resource> isArchived(boolean isArchived) {
         return (root, query, cb) -> cb.equal(root.get("isArchived"), isArchived);
     }
+
+    public static Specification<Resource> isNotDeleted() {
+        return (root, query, cb) -> cb.equal(root.get("isDeleted"), false);
+    }
+
+    public static Specification<Resource> isInCollection(java.util.UUID collectionId) {
+        return (root, query, cb) -> {
+            if (collectionId == null) {
+                return null;
+            }
+            query.distinct(true);
+            return cb.equal(root.join("collections").get("id"), collectionId);
+        };
+    }
 }
