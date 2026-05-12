@@ -1,6 +1,5 @@
 package com.dko.backend.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,9 +21,8 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @JsonIgnore
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
+    @Column(name = "supabase_id", nullable = false, unique = true)
+    private String supabaseId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
