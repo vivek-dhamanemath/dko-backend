@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import com.dko.backend.dto.CreateResourceRequest;
 import com.dko.backend.dto.UpdateResourceRequest;
 import com.dko.backend.dto.FilterCriteria;
+import com.dko.backend.dto.PaginatedResponse;
 import com.dko.backend.dto.ResourceResponse;
 import com.dko.backend.model.Resource;
 import com.dko.backend.model.User;
@@ -27,8 +29,8 @@ import com.dko.backend.service.ResourceService;
 import com.dko.backend.service.MetadataService;
 import com.dko.backend.dto.MetadataResponse;
 import com.dko.backend.dto.CollectionResponse;
-import com.dko.backend.model.Collection;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -43,7 +45,7 @@ public class ResourceController {
 
     @PostMapping
     public ResourceResponse create(
-            @RequestBody CreateResourceRequest request) {
+            @Valid @RequestBody CreateResourceRequest request) {
         User user = SecurityUtils.getCurrentUser(userRepository);
         Resource resource = resourceService.create(request, user);
 
@@ -58,7 +60,7 @@ public class ResourceController {
     @PutMapping("/{id}")
     public ResourceResponse update(
             @PathVariable UUID id,
-            @RequestBody UpdateResourceRequest request) {
+            @Valid @RequestBody UpdateResourceRequest request) {
         User user = SecurityUtils.getCurrentUser(userRepository);
         Resource resource = resourceService.update(id, request, user);
         return map(resource);
@@ -90,14 +92,23 @@ public class ResourceController {
     }
 
     @PostMapping("/filter")
-    public List<ResourceResponse> filterResources(
-            @RequestBody FilterCriteria criteria) {
+    public PaginatedResponse<ResourceResponse> filterResources(
+            @Valid @RequestBody FilterCriteria criteria) {
         User user = SecurityUtils.getCurrentUser(userRepository);
 
-        return resourceService.getFilteredResources(user, criteria)
-                .stream()
+        Page<Resource> page = resourceService.getFilteredResources(user, criteria);
+        List<ResourceResponse> content = page.getContent().stream()
                 .map(this::map)
                 .toList();
+
+        return new PaginatedResponse<>(
+                content,
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements(),
+                page.getTotalPages(),
+                page.hasNext(),
+                page.hasPrevious());
     }
 
     @DeleteMapping("/{id}")
@@ -170,10 +181,12 @@ public class ResourceController {
                 r.getCategory(),
                 tags,
                 r.getCreatedAt(),
+                r.getUpdatedAt(),
                 r.getIsArchived() != null ? r.getIsArchived() : false,
                 r.getIsDeleted() != null ? r.getIsDeleted() : false,
                 r.getIsPinned() != null ? r.getIsPinned() : false,
                 r.getDeletedAt(),
+                r.getIcon(),
                 r.getCollections().stream()
                         .map(c -> new CollectionResponse(c.getId(), c.getName(), c.getCreatedAt()))
                         .toList());

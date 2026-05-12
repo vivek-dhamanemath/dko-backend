@@ -6,6 +6,7 @@ import com.dko.backend.repository.UserRepository;
 import com.dko.backend.security.JwtUtil;
 import com.dko.backend.security.SecurityUtils;
 import com.dko.backend.service.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,15 +21,13 @@ public class AuthController {
     private final UserRepository userRepository;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-        System.out.println("📩 Received registration request for: " + request.getEmail());
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
         return ResponseEntity.ok("User registered successfully");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        System.out.println("📩 Received login request for: " + request.getEmail());
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         User user = authService.authenticate(request);
 
         String accessToken = jwtUtil.generateAccessToken(
@@ -47,20 +46,17 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshRequest request) {
-        System.out.println("📩 Received refresh request");
         return ResponseEntity.ok(authService.refreshAccessToken(request.getRefreshToken()));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@RequestBody LogoutRequest request) {
-        System.out.println("📩 Received logout request");
         authService.logout(request.getRefreshToken());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/logout-all")
     public ResponseEntity<Void> logoutAll() {
-        System.out.println("📩 Received logout-all request");
         User user = SecurityUtils.getCurrentUser(userRepository);
         authService.logoutAll(user.getId());
         return ResponseEntity.noContent().build();

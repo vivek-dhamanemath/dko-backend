@@ -18,6 +18,7 @@ public class ResourceResponse {
     private String category;
     private List<String> tags;
     private Instant createdAt;
+    private Instant updatedAt;
     @JsonProperty("isArchived")
     private boolean isArchived;
     @JsonProperty("isDeleted")
@@ -25,5 +26,6 @@ public class ResourceResponse {
     @JsonProperty("isPinned")
     private boolean isPinned;
     private Instant deletedAt;
+    private String icon;
     private List<CollectionResponse> collections;
 }

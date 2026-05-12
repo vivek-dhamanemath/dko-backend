@@ -29,7 +29,7 @@ public class Resource {
     @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 1000)
     private String note;
 
     @Column(nullable = false)
@@ -37,6 +37,9 @@ public class Resource {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "updated_at")
+    private Instant updatedAt;
 
     @Column(nullable = false, columnDefinition = "boolean default false")
     private Boolean isArchived = false;
@@ -50,6 +53,9 @@ public class Resource {
     @Column(nullable = false, columnDefinition = "boolean default false")
     private Boolean isPinned = false;
 
+    @Column
+    private String icon;
+
     @OneToMany(mappedBy = "resource", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ResourceTag> resourceTags = new HashSet<>();
 
@@ -59,5 +65,11 @@ public class Resource {
     @PrePersist
     public void onCreate() {
         this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = Instant.now();
     }
 }

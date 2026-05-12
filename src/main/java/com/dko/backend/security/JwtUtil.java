@@ -9,13 +9,30 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component
 public class JwtUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtUtil.class);
+    private static final String DEV_SECRET_PREFIX = "dko-dev-secret";
 
     private final Key key;
 
     @org.springframework.beans.factory.annotation.Autowired
     public JwtUtil(@org.springframework.beans.factory.annotation.Value("${jwt.secret}") String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT_SECRET is not set. Set it via environment variable with at least 32 characters.");
+        }
+        if (secret.length() < 32) {
+            throw new IllegalStateException(
+                    "JWT_SECRET must be at least 32 characters long for HS256 signing.");
+        }
+        if (secret.startsWith(DEV_SECRET_PREFIX)) {
+            log.warn("⚠ Using default dev JWT secret. Set JWT_SECRET env variable before deploying to production!");
+        }
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
     }
 

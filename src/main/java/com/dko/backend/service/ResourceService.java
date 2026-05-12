@@ -13,6 +13,8 @@ import com.dko.backend.repository.UserRepository;
 import com.dko.backend.dto.CreateResourceRequest;
 import com.dko.backend.dto.UpdateResourceRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,7 @@ public class ResourceService {
         resource.setTitle(request.getTitle());
         resource.setNote(request.getNote());
         resource.setCategory(request.getCategory());
+        resource.setIcon(request.getIcon());
 
         Resource saved = resourceRepository.save(resource);
 
@@ -76,7 +79,7 @@ public class ResourceService {
         return resourceRepository.findByUserAndIsArchivedOrderByCreatedAtDesc(user, isArchived);
     }
 
-    public List<Resource> getFilteredResources(User user, FilterCriteria criteria) {
+    public Page<Resource> getFilteredResources(User user, FilterCriteria criteria) {
         // Start with user-scoped specification
         Specification<Resource> spec = Specification.where(
                 ResourceSpecifications.belongsToUser(user));
@@ -122,9 +125,13 @@ public class ResourceService {
         // Always exclude soft-deleted resources from normal queries
         spec = spec.and(ResourceSpecifications.isNotDeleted());
 
-        // Execute query with sorting
-        return resourceRepository.findAll(spec,
+        // Execute query with pagination and sorting
+        PageRequest pageRequest = PageRequest.of(
+                criteria.getPage(),
+                criteria.getSize(),
                 Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        return resourceRepository.findAll(spec, pageRequest);
     }
 
     public void delete(UUID id, User user) {
@@ -145,6 +152,7 @@ public class ResourceService {
         resource.setTitle(request.getTitle());
         resource.setNote(request.getNote());
         resource.setCategory(request.getCategory());
+        resource.setIcon(request.getIcon());
 
         Resource saved = resourceRepository.save(resource);
 
