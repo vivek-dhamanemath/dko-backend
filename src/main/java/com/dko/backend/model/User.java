@@ -21,7 +21,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "supabase_id", nullable = false, unique = true)
+    @Column(name = "supabase_id", unique = true)
     private String supabaseId;
 
     @Enumerated(EnumType.STRING)
@@ -30,6 +30,9 @@ public class User {
 
     @Column(name = "created_at")
     private Instant createdAt;
+
+    @Column(name = "password_hash")
+    private String passwordHash = "SUPABASE_MANAGED";
 
     @Column(name = "lifetime_resources_count", nullable = false, columnDefinition = "bigint default 0")
     private long lifetimeResourcesCount = 0;

@@ -80,6 +80,7 @@ public class SupabaseJwtFilter extends OncePerRequestFilter {
                 }
             } catch (Exception e) {
                 log.warn("Supabase JWT validation failed: {}", e.getMessage());
+                log.debug("JWT validation error details:", e);
             }
         }
 
